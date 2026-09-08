@@ -1,0 +1,45 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# OWL runtime / captures
+*.pcap
+*.cap
+*.hccapx
+*.hc22000
+*.csv
+evidence/
+captures/
+logs/
+
+# YAML secrets / user config overrides
+config/user.yaml
+config/secrets.yaml
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~

@@ -1,0 +1,90 @@
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  OWL — Offensive WiFi Launcher                               ║
+# ║  Default Configuration Profile                               ║
+# ║  Created by Sharon Anil                                      ║
+# ╚══════════════════════════════════════════════════════════════╝
+
+owl:
+  version: "1.0"
+  creator: "Sharon Anil"
+  tagline: "See in the dark. Strike without a trace."
+  sim_mode: true
+  log_level: INFO     # DEBUG / INFO / WARN / ERROR
+  stealth_mode: false # suppress verbose output
+
+# ─── Interface Assignment ────────────────────────────────────────────────────
+interfaces:
+  deauth:   wlan0mon   # monitor mode NIC for deauth/flood
+  capture:  wlan0      # capture NIC for HARVEST
+  portal:   wlan1      # AP NIC for evil twin
+  tx_power: 30         # dBm — adjust for jurisdiction
+
+# ─── Target Profiles ─────────────────────────────────────────────────────────
+targets:
+  - bssid:    "AA:BB:CC:DD:EE:FF"
+    ssid:     "TargetNetwork_5G"
+    channel:  6
+    enc:      "WPA2-PSK"
+    wids_bypass: true
+    notes:    "Primary target — authorized scope"
+
+# ─── OWL-RECON Config ────────────────────────────────────────────────────────
+recon:
+  scan_duration:  15    # seconds per airodump-ng scan
+  max_aps:        50    # max APs to display
+  max_clients:    100   # max clients to track
+  pmf_check:      true  # attempt PMF detection
+  wids_threshold: 3     # anomaly count before WIDS warning
+
+# ─── OWL-DEAUTH Config ───────────────────────────────────────────────────────
+deauth:
+  default_count:   100
+  delay_ms:        10
+  reason_code:     "0x03"   # Deauthentication leaving BSS
+  spoof_mac:       true
+  spoof_seq:       true
+  burst_mode:      false
+  burst_size:      20
+  fuzz_reasons:    false    # iterate 0x01–0x2F for PMF bypass
+
+# ─── OWL-FLOOD Config ────────────────────────────────────────────────────────
+flood:
+  packet_count:    500      # 0 = infinite
+  burst_size:      20
+  channel_hop:     true
+  adaptive_pacing: true
+  random_intervals: true
+  hop_interval_ms: 200
+
+# ─── OWL-HARVEST Config ──────────────────────────────────────────────────────
+harvest:
+  auto_chaser:       true   # re-deauth on client rejoin
+  pmkid_capture:     true   # attempt PMKID as well
+  auto_target_switch: false
+  output_dir:        "~/owl_captures"
+  crack:
+    enabled:  true
+    tool:     hashcat       # hashcat | aircrack-ng
+    mode:     22000         # 22000 = WPA-PMKID-PBKDF2
+    wordlist: /usr/share/wordlists/rockyou.txt
+    rules:    []
+
+# ─── OWL-PORTAL Config ───────────────────────────────────────────────────────
+portal:
+  ssid_clone:    "TargetNetwork"
+  channel:       6
+  gateway:       "192.168.99.1"
+  dhcp_start:    "192.168.99.100"
+  dhcp_end:      "192.168.99.200"
+  dns_spoof:     true
+  arp_spoof:     false
+  mitm_hook:     false
+  portal_port:   80
+  cred_log:      "~/owl_captures/portal_creds.log"
+
+# ─── Evidence & Logging ──────────────────────────────────────────────────────
+evidence:
+  export_dir:       "/tmp/owl_evidence"
+  timestamped_logs: true
+  pcap_dump:        true
+  max_log_lines:    5000
