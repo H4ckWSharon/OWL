@@ -102,13 +102,23 @@ success "System dependencies installed."
 
 step "Step 4/6 — Installing Python dependencies"
 
-# Prefer system pip, fall back to venv
 PY=$(command -v python3)
 info "Python: $($PY --version)"
 
-# Install into user site-packages (works without venv on Kali/Parrot)
-$PY -m pip install --upgrade pip --quiet
-$PY -m pip install \
+# Modern Debian/Parrot/Ubuntu enforce PEP 668 — system pip is restricted.
+# We create a dedicated virtualenv at /opt/owl-venv instead.
+OWL_VENV="/opt/owl-venv"
+info "Creating virtual environment at $OWL_VENV ..."
+$PY -m venv "$OWL_VENV"
+
+VENV_PY="$OWL_VENV/bin/python3"
+VENV_PIP="$OWL_VENV/bin/pip"
+
+info "Upgrading pip inside venv..."
+"$VENV_PIP" install --upgrade pip --quiet
+
+info "Installing OWL Python dependencies into venv..."
+"$VENV_PIP" install \
     "rich>=13.7.0" \
     "textual>=0.47.0" \
     "pyyaml>=6.0.1" \
@@ -116,27 +126,28 @@ $PY -m pip install \
     "scapy>=2.5.0" \
     --quiet
 
-success "Python dependencies installed."
+success "Python dependencies installed into $OWL_VENV"
 
 step "Step 5/6 — Creating CLI launcher"
 
-# Create /usr/local/bin/owl entry point
+# Create /usr/local/bin/owl — uses the venv Python
 cat > /usr/local/bin/owl << OWLEOF
 #!/usr/bin/env bash
 # OWL CLI launcher — Created by Sharon Anil
+# Uses dedicated venv at /opt/owl-venv to avoid PEP 668 restrictions
 cd "$OWL_DIR"
-exec python3 "$OWL_DIR/owl.py" "\$@"
+exec "$OWL_VENV/bin/python3" "$OWL_DIR/owl.py" "\$@"
 OWLEOF
 
 chmod +x /usr/local/bin/owl
 success "CLI launcher created: /usr/local/bin/owl"
 
-# Create owl-recon, owl-deauth shortcuts
+# Create owl-recon, owl-deauth etc. shortcuts
 for mod in recon deauth flood harvest portal; do
     cat > "/usr/local/bin/owl-$mod" << MODEOF
 #!/usr/bin/env bash
 cd "$OWL_DIR"
-exec python3 "$OWL_DIR/owl.py" --module $mod "\$@"
+exec "$OWL_VENV/bin/python3" "$OWL_DIR/owl.py" --module $mod "\$@"
 MODEOF
     chmod +x "/usr/local/bin/owl-$mod"
 done
@@ -144,11 +155,11 @@ success "Module shortcuts created: owl-recon, owl-deauth, owl-flood, owl-harvest
 
 step "Step 6/6 — Final checks"
 
-# Verify Python can import textual
-if $PY -c "import textual, rich, yaml" 2>/dev/null; then
-    success "Python imports: OK"
+# Verify Python can import textual (use venv Python)
+if "$VENV_PY" -c "import textual, rich, yaml" 2>/dev/null; then
+    success "Python imports: OK (venv)"
 else
-    error "Python import check failed. Try: pip3 install rich textual pyyaml"
+    error "Python import check failed. Try: $VENV_PIP install rich textual pyyaml"
 fi
 
 # Verify aircrack suite
