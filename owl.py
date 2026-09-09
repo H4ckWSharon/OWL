@@ -387,11 +387,11 @@ class AboutModal(ModalScreen):
 
 class TerminalLog(RichLog):
     def on_mount(self) -> None:
-        self.write("[bold yellow]◉ OWL TERMINAL — LIVE MODE[/bold yellow]", markup=True)
-        self.write("[dim]" + "─" * 72 + "[/dim]", markup=True)
+        self.write("[bold yellow]◉ OWL TERMINAL — LIVE MODE[/bold yellow]")
+        self.write("[dim]" + "─" * 72 + "[/dim]")
 
     def _log(self, color: str, msg: str) -> None:
-        self.write(f"[{color}]{msg}[/{color}]", markup=True)
+        self.write(f"[{color}]{msg}[/{color}]")
 
     def info(self, msg: str)    -> None: self._log("cyan",    msg)
     def success(self, msg: str) -> None: self._log("green",   msg)
@@ -402,8 +402,8 @@ class TerminalLog(RichLog):
 
     def banner(self) -> None:
         for line in STARTUP_ASCII.split("\n"):
-            self.write(line, markup=True)
-        self.write("[dim]" + "─" * 72 + "[/dim]", markup=True)
+            self.write(line)
+        self.write("[dim]" + "─" * 72 + "[/dim]")
 
     def callback(self, color: str, msg: str) -> None:
         """Universal callback for live_engine functions."""
