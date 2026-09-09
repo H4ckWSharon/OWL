@@ -33,7 +33,7 @@ try:
     from textual.widget import Widget
     from textual.widgets import (
         Button, Checkbox, DataTable, Footer,
-        Input, Log, Select, Static, Switch, TextArea,
+        Input, RichLog, Select, Static, Switch, TextArea,
     )
     from textual import on, work
     from rich.text import Text
@@ -385,13 +385,13 @@ class AboutModal(ModalScreen):
 #  TERMINAL WIDGET
 # ═══════════════════════════════════════════════════════════════════════════════
 
-class TerminalLog(Log):
+class TerminalLog(RichLog):
     def on_mount(self) -> None:
-        self.write_line("[bold yellow]◉ OWL TERMINAL — LIVE MODE[/bold yellow]")
-        self.write_line("[dim]" + "─" * 72 + "[/dim]")
+        self.write("[bold yellow]◉ OWL TERMINAL — LIVE MODE[/bold yellow]", markup=True)
+        self.write("[dim]" + "─" * 72 + "[/dim]", markup=True)
 
     def _log(self, color: str, msg: str) -> None:
-        self.write_line(f"[{color}]{msg}[/{color}]")
+        self.write(f"[{color}]{msg}[/{color}]", markup=True)
 
     def info(self, msg: str)    -> None: self._log("cyan",    msg)
     def success(self, msg: str) -> None: self._log("green",   msg)
@@ -402,8 +402,8 @@ class TerminalLog(Log):
 
     def banner(self) -> None:
         for line in STARTUP_ASCII.split("\n"):
-            self.write_line(line)
-        self.write_line("[dim]" + "─" * 72 + "[/dim]")
+            self.write(line, markup=True)
+        self.write("[dim]" + "─" * 72 + "[/dim]", markup=True)
 
     def callback(self, color: str, msg: str) -> None:
         """Universal callback for live_engine functions."""
