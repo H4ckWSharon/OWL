@@ -1440,7 +1440,7 @@ class OWLApp(App):
                     yield SettingsPage(  id="page-settings", classes="hidden")
 
                 with Container(id="terminal-area"):
-                    yield TerminalLog(id="terminal-log", highlight=True, markup=True)
+                    yield TerminalLog(id="terminal-log")
 
         yield Footer()
 
