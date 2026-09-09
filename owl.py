@@ -124,21 +124,43 @@ AuthGateScreen { align: center middle; }
     border-bottom: solid #1e3050; padding: 1 2;
     color: #f5a623; text-style: bold; content-align: center middle;
 }
+/* Sidebar nav — Buttons styled as sidebar links */
 .nav-item {
     height: 3; padding: 0 2;
-    color: #6b7fa3; border-left: solid transparent;
+    color: #7a9abf;
+    border-top: none; border-right: none; border-bottom: none;
+    border-left: solid transparent;
+    background: transparent; text-align: left; width: 100%;
+    margin: 0; text-style: none;
 }
-.nav-item:hover { background: #0f1a2e; color: #e8edf5; border-left: solid #f5a623 50%; }
-.nav-item.active { background: #0f1a2e; color: #f5a623; border-left: solid #f5a623; text-style: bold; }
+.nav-item:hover {
+    background: #0f1e38; color: #e8edf5;
+    border-left: solid #f5a623;
+}
+.nav-item.active {
+    background: #0f1e38; color: #f5c842;
+    border-left: solid #f5a623; text-style: bold;
+}
 #sidebar-status {
-    background: #070d1a; border-top: solid #1a2840;
-    border-bottom: solid #1a2840; padding: 1 2; height: auto;
+    background: #060c1a; border-top: solid #1e3050;
+    border-bottom: solid #1e3050; padding: 1 2; height: auto;
+    color: #8faec8;
 }
 #sidebar-footer {
-    dock: bottom; height: 3;
-    border-top: solid #1a2840; padding: 0 2;
-    color: #243352; content-align: left middle;
+    dock: bottom; height: 7;
+    border-top: solid #1e3050; padding: 1 2;
+    color: #3a5070;
 }
+
+/* Back button in top bar */
+.back-btn {
+    height: 3; min-width: 18;
+    border-top: none; border-bottom: none; border-left: none;
+    border-right: solid #1e3050;
+    background: #0c1830; color: #f5a623;
+    text-style: bold; margin: 0; padding: 0 2;
+}
+.back-btn:hover { background: #1a0f00; color: #ffe08a; border-right: solid #f5a623; }
 
 /* Top bar */
 #top-bar-title { color: #f5a623; text-style: bold; width: 1fr; }
@@ -1419,11 +1441,10 @@ class OWLApp(App):
                     id="sidebar-logo", markup=True,
                 )
                 for page_id, (label, icon, _) in PAGES.items():
-                    yield Static(
-                        f"  {icon}  {label}",
+                    yield Button(
+                        f"{icon}  {label}",
                         id=f"nav-{page_id}",
                         classes=f"nav-item {'active' if page_id == 'dashboard' else ''}",
-                        markup=True,
                     )
 
                 # Live status in sidebar
@@ -1437,13 +1458,18 @@ class OWLApp(App):
                     id="sidebar-status", markup=True,
                 )
                 yield Static(
-                    "  [dim]sharon anil[/dim]\n  [dim cyan]OWL v1.0[/dim cyan]",
+                    "  [dim]Keys: [yellow]1-7[/yellow] pages[/dim]\n"
+                    "  [dim]      [yellow]Ctrl+T[/yellow] terminal[/dim]\n"
+                    "  [dim]      [yellow]Q[/yellow] quit[/dim]\n"
+                    "  [dim cyan]OWL v1.0 · Sharon Anil[/dim cyan]",
                     id="sidebar-footer", markup=True,
                 )
 
             # ── Main area ─────────────────────────────────────────────────────
             with Vertical(id="main-area"):
                 with Horizontal(id="top-bar"):
+                    yield Button("⌂ DASHBOARD", id="btn-back-dashboard",
+                                 classes="back-btn hidden")
                     yield Static("", id="top-bar-title", markup=True)
                     yield Static("[bold green]◉ LIVE MODE[/bold green]",
                                  id="top-bar-mode", markup=True)
@@ -1519,12 +1545,10 @@ class OWLApp(App):
     def _update_nav(self) -> None:
         for page_id in PAGES:
             try:
-                item = self.query_one(f"#nav-{page_id}", Static)
+                item = self.query_one(f"#nav-{page_id}", Button)
                 label, icon, _ = PAGES[page_id]
                 active = page_id == self.current_page
-                style  = "bold yellow" if active else "dim"
-                prefix = "▶" if active else " "
-                item.update(f"  {prefix}{icon}  [{style}]{label}[/{style}]")
+                item.label = f"{icon}  {label}"
                 item.add_class("active") if active else item.remove_class("active")
             except Exception:
                 pass
@@ -1543,11 +1567,24 @@ class OWLApp(App):
         self.current_page = page_id
         self._update_nav()
         self._update_top_bar()
+        # Show back button on every page except dashboard
+        try:
+            back_btn = self.query_one("#btn-back-dashboard", Button)
+            if page_id == "dashboard":
+                back_btn.add_class("hidden")
+            else:
+                back_btn.remove_class("hidden")
+        except Exception:
+            pass
 
-    def on_static_click(self, event) -> None:
-        wid = getattr(event.widget, "id", "") or ""
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        wid = event.button.id or ""
         if wid.startswith("nav-"):
             self.switch_page(wid[4:])
+            event.stop()
+        elif wid == "btn-back-dashboard":
+            self.switch_page("dashboard")
+            event.stop()
 
     def action_nav_dashboard(self) -> None: self.switch_page("dashboard")
     def action_nav_recon(self)     -> None: self.switch_page("recon")
