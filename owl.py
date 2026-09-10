@@ -663,7 +663,10 @@ class ReconPage(Widget):
 
         terminal.info(f"[{ts()}] [*] OWL-RECON — airodump-ng on {iface} for {dur}s")
 
-        csv_path = await live.live_airodump_scan(iface, dur, terminal.callback)
+        from datetime import datetime as _dt
+        scan_prefix = f"/tmp/owl_recon_{_dt.now().strftime('%Y%m%d_%H%M%S')}"
+        csv_path = await live.live_airodump_scan(iface, dur, terminal.callback,
+                                                 output_prefix=scan_prefix)
 
         if csv_path:
             aps, clients = live.parse_airodump_csv(csv_path)
@@ -1485,7 +1488,7 @@ class OWLApp(App):
                     yield SettingsPage(  id="page-settings", classes="hidden")
 
                 with Container(id="terminal-area"):
-                    yield TerminalLog(id="terminal-log")
+                    yield TerminalLog(id="terminal-log", markup=True)
 
         yield Footer()
 

@@ -171,50 +171,88 @@ async def live_airodump_scan(
         return None
 
 
+import re as _re
+
+def _strip_ansi(s: str) -> str:
+    """Remove ANSI escape sequences from a string."""
+    return _re.sub(r'\x1b\[[0-9;]*[mGKHF]', '', s).strip()
+
+
 def parse_airodump_csv(csv_path: Path) -> tuple[list[dict], list[dict]]:
-    """Parse airodump-ng CSV into (aps, clients)."""
-    aps: list[dict] = []
-    clients: list[dict] = []
+    """Parse airodump-ng CSV into (aps, clients), deduplicated by BSSID/MAC."""
+    aps_by_bssid: dict[str, dict] = {}
+    clients_by_mac: dict[str, dict] = {}
     try:
         text = csv_path.read_text(errors="replace")
+        # airodump uses \r\n\r\n to separate AP and client sections
         sections = text.split("\r\n\r\n")
+        if not sections:
+            return [], []
+
         ap_section = sections[0] if sections else ""
         cl_section = sections[1] if len(sections) > 1 else ""
 
+        # ── Access Points ──────────────────────────────────────────
         ap_lines = ap_section.strip().splitlines()
-        if len(ap_lines) > 1:
-            for line in ap_lines[2:]:
-                parts = [p.strip() for p in line.split(",")]
-                if len(parts) >= 14:
-                    aps.append({
-                        "bssid":   parts[0],
-                        "channel": parts[3].strip(),
-                        "signal":  parts[8].strip() + " dBm",
-                        "enc":     parts[5].strip(),
-                        "ssid":    parts[13].strip(),
-                        "pmf":     "Unknown",
-                        "clients": 0,
-                        "wids":    False,
-                        "vendor":  "",
-                    })
+        for line in ap_lines[2:]:           # skip 2 header lines
+            parts = [_strip_ansi(p) for p in line.split(",")]
+            if len(parts) < 14:
+                continue
+            bssid = parts[0]
+            if not bssid or bssid.lower() == "bssid":
+                continue
+            try:
+                signal = int(parts[8]) if parts[8].lstrip("-").isdigit() else -999
+            except ValueError:
+                signal = -999
+            # Keep entry with strongest signal for this BSSID
+            if bssid not in aps_by_bssid or signal > aps_by_bssid[bssid]["_sig"]:
+                aps_by_bssid[bssid] = {
+                    "bssid":   bssid,
+                    "channel": parts[3],
+                    "signal":  f"{parts[8]} dBm",
+                    "enc":     parts[5],
+                    "ssid":    parts[13],
+                    "pmf":     "Unknown",
+                    "clients": 0,
+                    "wids":    False,
+                    "vendor":  "",
+                    "_sig":    signal,
+                }
 
+        # ── Clients ────────────────────────────────────────────────
         cl_lines = cl_section.strip().splitlines()
-        if len(cl_lines) > 1:
-            for line in cl_lines[2:]:
-                parts = [p.strip() for p in line.split(",")]
-                if len(parts) >= 6:
-                    clients.append({
-                        "mac":       parts[0],
-                        "bssid":     parts[5],
-                        "signal":    parts[3].strip() + " dBm",
-                        "channel":   "—",
-                        "vendor":    "",
-                        "frames":    parts[4].strip(),
-                        "last_seen": parts[2].strip(),
-                    })
+        for line in cl_lines[2:]:           # skip 2 header lines
+            parts = [_strip_ansi(p) for p in line.split(",")]
+            if len(parts) < 6:
+                continue
+            mac = parts[0]
+            if not mac or mac.lower() in ("station mac", "mac"):
+                continue
+            if mac not in clients_by_mac:
+                clients_by_mac[mac] = {
+                    "mac":       mac,
+                    "bssid":     parts[5],
+                    "signal":    f"{parts[3]} dBm",
+                    "channel":   "—",
+                    "vendor":    "",
+                    "frames":    parts[4],
+                    "last_seen": parts[2],
+                }
+            # Increment client count on parent AP
+            ap_bssid = parts[5].strip()
+            if ap_bssid in aps_by_bssid:
+                aps_by_bssid[ap_bssid]["clients"] += 1
+
     except Exception:
         pass
+
+    # Strip internal _sig key before returning
+    aps = [{k: v for k, v in ap.items() if k != "_sig"}
+           for ap in aps_by_bssid.values()]
+    clients = list(clients_by_mac.values())
     return aps, clients
+
 
 
 # ─── DEAUTH ──────────────────────────────────────────────────────────────────
