@@ -1,16 +1,39 @@
-﻿<div align="center">
+<div align="center">
 
 <!-- Animated typing banner -->
 <img src="https://readme-typing-svg.demolab.com?font=JetBrains+Mono&weight=700&size=18&duration=3000&pause=1000&color=F5A623&center=true&vCenter=true&width=500&lines=See+in+the+dark.;Strike+without+a+trace.;Offensive+WiFi+Launcher+v1.0;For+authorized+testing+ONLY." alt="OWL tagline" />
 
 ```
-    ██████╗ ██╗    ██╗██╗
-   ██╔═══██╗██║    ██║██║
-   ██║   ██║██║ █╗ ██║██║       Offensive WiFi Launcher v1.0
-   ██║   ██║██║███╗██║██║       "See in the dark. Strike without a trace."
-   ╚██████╔╝╚███╔███╔╝███████╗
-    ╚═════╝  ╚══╝╚══╝ ╚══════╝   Created by Sharon Anil
+         *    *    *    *    *    *    *
+       *   .oOOOOOOOOOOOOOOOOOOOOo.   *
+      *  oO|  _______________________  |Oo  *
+     *  oO |/ /  __  _________  __  \ \| Oo  *
+   .-+--oO-|  | /.[*]\         /[*].\ |--oO--+-.
+   | +  oO || ( \ [*] )  (^)  ( [*] / ) oO  + |
+   '-+--oO-|  |  '---' /(_Y_)\ '---'  |--oO--+-'
+     *  oO  \ \  ______\  |  /______  / /  oO  *
+     *  oO   '--'        '---'        '--'  oO  *
+   .-+--oO---+--+----+--+---+--+----+--+---oO--+-.
+   | +  oO   |  |    |  | | |  |    |  |   oO  + |
+   '-+--oO---+--+----+--+---+--+----+--+---oO--+-'
+     *  oO  .------.   XII   .------.  oO  *
+      * oO  | XI   +--( O )--+   II |  oO *
+       * oO '------'  /   \  '------' oO *
+         oO  (  X  ) |     | ( III )  oO
+          oO  '----' |     | '----'  oO
+       .---oOoOoOoOoO|_____|oOoOoOoOoO---.
+      /   .=========.       .=========.   \
+     |   | |||  ||| |       | |||  ||| |   |
+     |   | |||  ||| |       | |||  ||| |   |
+      \   '========='       '========='   /
+       '------.  |||  .---.  |||  .------'
+               '----' '---' '----'
+                ||||   |||   ||||
+                ####   ###   ####
 ```
+
+> **OWL — Offensive WiFi Launcher v1.0**
+> *Created by Sharon Anil*
 
 ![Python](https://img.shields.io/badge/Python-3.10%2B-yellow?style=for-the-badge&logo=python&logoColor=white&labelColor=1a1a2e)
 ![Platform](https://img.shields.io/badge/Platform-Kali%20%7C%20Parrot%20%7C%20Debian-orange?style=for-the-badge&logo=linux&logoColor=white&labelColor=1a1a2e)
@@ -118,9 +141,8 @@ sudo python3 owl.py
 
 | Key | Action |
 |:---:|:---|
-| `1` – `6` | Switch modules |
+| `1` – `7` | Switch modules |
 | `Ctrl+T` | Toggle terminal panel |
-| `Ctrl+S` | Toggle SIM / LIVE mode |
 | `Ctrl+A` | About OWL |
 | `Ctrl+E` | Export evidence |
 | `q` | Quit OWL |
@@ -197,14 +219,20 @@ Unauthorized use is illegal under:
 <div align="center">
 
 ```
-      (  ,  )
-       )/ \(
-      (/ @ \)      See in the dark.
-       )   (       Strike without a trace.
-      (_\_/_)
-       ( Y )
-       /|=|\
-      (_/ \_)
+         *    *    *    *    *    *    *
+       *   .oOOOOOOOOOOOOOOOOOOOOo.   *
+      *  oO|  .(  [*]  (^)  [*]  ).  |Oo  *
+   .-+--oO-+--+----+--+---+--+----+--+-oO--+-.
+   | +  oO   .------.  XII  .------.  oO  + |
+   '-+--oO-- | XI   +--(O)--+  II  | -oO--+-'
+      *  oO  '------' /   \ '------'  oO  *
+        oO     (X)   |     |  (III)   oO
+         oO         '-----'          oO
+      .--oOoOoOoOoOoOoOoOoOoOoOoOoOo--.
+     |   ||||  ||||  ||||  ||||  ||||   |
+      '--||||--||||--||||--||||--||||--'
+           ||||  ||||  ||||  ||||
+           ####  ####  ####  ####
 ```
 
 **CREATED BY [SHARON ANIL](https://github.com/H4ckWSharon)**
