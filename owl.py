@@ -1421,8 +1421,7 @@ PAGES: dict[str, tuple[str, str, type]] = {
 class OWLApp(App):
     CSS   = OWL_CSS
     TITLE = "OWL — Offensive WiFi Launcher v1.0 [LIVE]"
-    ENABLE_COMMAND_PALETTE = False   # Prevent Ctrl+P flood events
-    ALLOW_SELECT = False             # No text selection (prevents touch drag issues)
+    ENABLE_COMMAND_PALETTE = False   # Suppress Ctrl+P command palette
 
     BINDINGS = [
         Binding("1", "nav_dashboard", "Dashboard"),
@@ -1513,6 +1512,19 @@ class OWLApp(App):
         self.set_interval(1, self._update_clock)
         self._update_nav()
         self._update_top_bar()
+        # Disable xterm any-event mouse motion tracking after Textual
+        # sets up its driver. This prevents touchscreen devices from
+        # flooding the event queue with \x1b[<35;X;YM sequences which
+        # corrupt widget content.  Button-click tracking (1000h) stays.
+        self.call_after_refresh(self._disable_mouse_motion)
+
+    def _disable_mouse_motion(self) -> None:
+        """Write xterm escape to stop motion-tracking; keep click events."""
+        try:
+            import os
+            os.write(1, b"\x1b[?1003l")   # disable any-event motion tracking
+        except Exception:
+            pass
 
     def _on_consent(self, result: bool | None) -> None:
         if result:
@@ -1601,6 +1613,15 @@ class OWLApp(App):
         elif wid == "btn-back-dashboard":
             self.switch_page("dashboard")
             event.stop()
+
+    def on_mouse_move(self, event) -> None:
+        """Consume all mouse-move events at app level.
+
+        Touchscreens generate xterm SGR mouse-motion sequences
+        (\x1b[<35;X;YM) at very high frequency.  Without this handler
+        the events propagate to focused widgets and corrupt their text.
+        """
+        event.stop()
 
     def action_nav_dashboard(self) -> None: self.switch_page("dashboard")
     def action_nav_recon(self)     -> None: self.switch_page("recon")
