@@ -1,4 +1,4 @@
-"""
+﻿"""
 ╔═══════════════════════════════════════════════════════════╗
 ║         OWL — Offensive WiFi Launcher                     ║
 ║         Banner & ASCII Art  — Steampunk Edition           ║
@@ -7,66 +7,68 @@
 """
 
 # ── Steampunk Owl — full boot / terminal banner ───────────────────────────────
-STARTUP_ASCII = r"""
-[bold yellow]         ⚙   ⚙   ⚙               ⚙   ⚙   ⚙[/bold yellow]
-[bold yellow]       ⚙    [/bold yellow][#6B2D8B]▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓[/bold yellow][bold yellow]    ⚙[/bold yellow]
-[bold yellow]      ⚙   [/bold yellow][#6B2D8B]▓▓[/bold yellow][bold yellow]╔═══════════════════╗[/bold yellow][#6B2D8B]▓▓[/bold yellow][bold yellow]   ⚙[/bold yellow]
-[bold yellow]     ⚙    [/bold yellow][#6B2D8B]▓[/bold yellow][bold yellow]║[/bold yellow][#8B4513] ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄ [/bold yellow][bold yellow]║[/bold yellow][#6B2D8B]▓[/bold yellow][bold yellow]    ⚙[/bold yellow]
-[bold yellow]  ⚙─┬─╔╗  [/bold yellow][#6B2D8B]▓[/bold yellow][bold yellow]║[/bold yellow][#8B4513] █  [/bold yellow][bold red]◈◈◈[/bold red][#DAA520] ▄▄▄ [/bold yellow][bold red]◈◈◈[/bold red][#8B4513]  █ [/bold yellow][bold yellow]║[/bold yellow][#6B2D8B]▓[/bold yellow][bold yellow]  ╔╗─┬─⚙[/bold yellow]
-[bold yellow]  ⚙  │ ║  [/bold yellow][#6B2D8B]▓[/bold yellow][bold yellow]║[/bold yellow][#8B4513] █  [/bold yellow][bold red]◈◈◈[/bold red][#DAA520] ║⊙║ [/bold yellow][bold red]◈◈◈[/bold red][#8B4513]  █ [/bold yellow][bold yellow]║[/bold yellow][#6B2D8B]▓[/bold yellow][bold yellow]  ║ │  ⚙[/bold yellow]
-[bold yellow]  ⚙  │ ╚╗ [/bold yellow][#6B2D8B]▓[/bold yellow][bold yellow]║[/bold yellow][#8B4513] ████[/bold yellow][#DAA520] ▀▄▀▄▀ [/bold yellow][#8B4513]████ [/bold yellow][bold yellow]║[/bold yellow][#6B2D8B]▓[/bold yellow][bold yellow] ╔╝ │  ⚙[/bold yellow]
-[bold yellow]  ⚙─┴──╚══[/bold yellow][#6B2D8B]▓[/bold yellow][bold yellow]║[/bold yellow][#8B4513] █████[/bold yellow][#DAA520] ─── [/bold yellow][#8B4513]█████ [/bold yellow][bold yellow]║[/bold yellow][#6B2D8B]▓[/bold yellow][bold yellow]══╝──┴─⚙[/bold yellow]
-[bold yellow]  ───────╔╝[/bold yellow][#6B2D8B]▓[/bold yellow][bold yellow]╠[/bold yellow][#8B4513]███████[/bold yellow][bold yellow]⚙─⚙─⚙[/bold yellow][#8B4513]███████[/bold yellow][bold yellow]╣[/bold yellow][#6B2D8B]▓[/bold yellow][bold yellow]╚╗───────[/bold yellow]
-[bold yellow]         ╔╝[/bold yellow][#6B2D8B]▓[/bold yellow][bold yellow]║[/bold yellow][#8B4513] ██[/bold yellow][bold yellow]╔══════════════════╗[/bold yellow][#8B4513]██ [/bold yellow][bold yellow]║[/bold yellow][#6B2D8B]▓[/bold yellow][bold yellow]╚╗[/bold yellow]
-[bold yellow]        ╔╝ [/bold yellow][#6B2D8B]▓[/bold yellow][bold yellow]║[/bold yellow][#8B4513] ██[/bold yellow][bold yellow]║[/bold yellow][white]    XII       I   [/white][bold yellow]║[/bold yellow][#8B4513]██ [/bold yellow][bold yellow]║[/bold yellow][#6B2D8B]▓[/bold yellow][bold yellow] ╚╗[/bold yellow]
-[bold yellow]       ╔╝  [/bold yellow][#6B2D8B]▓[/bold yellow][bold yellow]║[/bold yellow][#8B4513] ██[/bold yellow][bold yellow]║[/bold yellow][white]  XI [/white][#DAA520]⚙[/bold yellow][yellow]─◉─[/yellow][#DAA520]⚙[/bold yellow][white] II  [/white][bold yellow]║[/bold yellow][#8B4513]██ [/bold yellow][bold yellow]║[/bold yellow][#6B2D8B]▓[/bold yellow][bold yellow]  ╚╗[/bold yellow]
-[bold yellow]      ╔╝   [/bold yellow][#6B2D8B]▓[/bold yellow][bold yellow]║[/bold yellow][#8B4513] ██[/bold yellow][bold yellow]║[/bold yellow][white]   X          III  [/white][bold yellow]║[/bold yellow][#8B4513]██ [/bold yellow][bold yellow]║[/bold yellow][#6B2D8B]▓[/bold yellow][bold yellow]   ╚╗[/bold yellow]
-[bold yellow]     ╔╝    [/bold yellow][#6B2D8B]▓[/bold yellow][bold yellow]╚═[/bold yellow][#8B4513]██[/bold yellow][bold yellow]║[/bold yellow][white]    IX      IV    [/white][bold yellow]║[/bold yellow][#8B4513]██[/bold yellow][bold yellow]═╝[/bold yellow][#6B2D8B]▓[/bold yellow][bold yellow]    ╚╗[/bold yellow]
-[bold yellow]    ╔╝ [/bold yellow][#8B4513]████[/bold yellow][bold yellow]═══[/bold yellow][#8B4513]██[/bold yellow][bold yellow]╚══════════════════╝[/bold yellow][#8B4513]██[/bold yellow][bold yellow]═══[/bold yellow][#8B4513]████[/bold yellow][bold yellow] ╚╗[/bold yellow]
-[bold yellow]   ╔╝  [/bold yellow][#DAA520]▌▌▌[/bold yellow][#8B4513]█████████████████████████████[/bold yellow][#DAA520]▐▐▐[/bold yellow][bold yellow]  ╚╗[/bold yellow]
-[bold yellow]  ╔╝   [/bold yellow][#DAA520]▌▌▌[/bold yellow][#8B4513]██[/bold yellow][#DAA520]▌▌▌▌▌▌▌▌▌▌▌▌▌▌▌▌▌▌▌▌▌[/bold yellow][#8B4513]██[/bold yellow][#DAA520]▐▐▐[/bold yellow][bold yellow]   ╚╗[/bold yellow]
-[bold yellow]  ╚══════════════╧════════════════╧══════════════╝[/bold yellow]
-[bold yellow]              [/bold yellow][#8B4513]║║║[/bold yellow][bold yellow]  [/bold yellow][#8B4513]║║║[/bold yellow][bold yellow]  [/bold yellow][#8B4513]║║║[/bold yellow][bold yellow]  [/bold yellow][#8B4513]║║║[/bold yellow][bold yellow]  [/bold yellow][#8B4513]║║║[/bold yellow]
-[bold yellow]              [/bold yellow][#DAA520]╚╝╚[/bold yellow][bold yellow]  [/bold yellow][#DAA520]╚╝╚[/bold yellow][bold yellow]  [/bold yellow][#DAA520]╚╝╚[/bold yellow][bold yellow]  [/bold yellow][#DAA520]╚╝╚[/bold yellow][bold yellow]  [/bold yellow][#DAA520]╚╝╚[/bold yellow]
-[bold yellow]
-          [dim]Offensive WiFi Launcher v1.0  ·  Created by Sharon Anil[/dim]
-        [dim yellow]"See in the dark.  Strike without a trace."[/dim yellow][/bold yellow]
-"""
+# All inline color segments use [/] (Rich universal close) so each line
+# written individually to RichLog never has an unmatched closing tag.
+STARTUP_ASCII = (
+    "[bold yellow]         ⚙   ⚙   ⚙               ⚙   ⚙   ⚙[/]\n"
+    "[bold yellow]       ⚙    [/][#6B2D8B]▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓[/][bold yellow]    ⚙[/]\n"
+    "[bold yellow]      ⚙   [/][#6B2D8B]▓▓[/][bold yellow]╔═══════════════════╗[/][#6B2D8B]▓▓[/][bold yellow]   ⚙[/]\n"
+    "[bold yellow]     ⚙    [/][#6B2D8B]▓[/][bold yellow]║[/][#8B4513] ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄ [/][bold yellow]║[/][#6B2D8B]▓[/][bold yellow]    ⚙[/]\n"
+    "[bold yellow]  ⚙─┬─╔╗  [/][#6B2D8B]▓[/][bold yellow]║[/][#8B4513] █  [/][bold red]◈◈◈[/] [#DAA520]▄▄▄[/] [bold red]◈◈◈[/][#8B4513]  █ [/][bold yellow]║[/][#6B2D8B]▓[/][bold yellow]  ╔╗─┬─⚙[/]\n"
+    "[bold yellow]  ⚙  │ ║  [/][#6B2D8B]▓[/][bold yellow]║[/][#8B4513] █  [/][bold red]◈◈◈[/] [#DAA520]║⊙║[/] [bold red]◈◈◈[/][#8B4513]  █ [/][bold yellow]║[/][#6B2D8B]▓[/][bold yellow]  ║ │  ⚙[/]\n"
+    "[bold yellow]  ⚙  │ ╚╗ [/][#6B2D8B]▓[/][bold yellow]║[/][#8B4513] ████[/] [#DAA520]▀▄▀▄▀[/] [#8B4513]████ [/][bold yellow]║[/][#6B2D8B]▓[/][bold yellow] ╔╝ │  ⚙[/]\n"
+    "[bold yellow]  ⚙─┴──╚══[/][#6B2D8B]▓[/][bold yellow]║[/][#8B4513] █████[/] [#DAA520]───[/] [#8B4513]█████ [/][bold yellow]║[/][#6B2D8B]▓[/][bold yellow]══╝──┴─⚙[/]\n"
+    "[bold yellow]  ───────╔╝[/][#6B2D8B]▓[/][bold yellow]╠[/][#8B4513]███████[/][bold yellow]⚙─⚙─⚙[/][#8B4513]███████[/][bold yellow]╣[/][#6B2D8B]▓[/][bold yellow]╚╗───────[/]\n"
+    "[bold yellow]         ╔╝[/][#6B2D8B]▓[/][bold yellow]║[/][#8B4513] ██[/][bold yellow]╔══════════════════╗[/][#8B4513]██ [/][bold yellow]║[/][#6B2D8B]▓[/][bold yellow]╚╗[/]\n"
+    "[bold yellow]        ╔╝ [/][#6B2D8B]▓[/][bold yellow]║[/][#8B4513] ██[/][bold yellow]║[/][white]    XII       I   [/][bold yellow]║[/][#8B4513]██ [/][bold yellow]║[/][#6B2D8B]▓[/][bold yellow] ╚╗[/]\n"
+    "[bold yellow]       ╔╝  [/][#6B2D8B]▓[/][bold yellow]║[/][#8B4513] ██[/][bold yellow]║[/][white]  XI [/][#DAA520]⚙[/][yellow]─◉─[/][#DAA520]⚙[/][white] II  [/][bold yellow]║[/][#8B4513]██ [/][bold yellow]║[/][#6B2D8B]▓[/][bold yellow]  ╚╗[/]\n"
+    "[bold yellow]      ╔╝   [/][#6B2D8B]▓[/][bold yellow]║[/][#8B4513] ██[/][bold yellow]║[/][white]   X          III  [/][bold yellow]║[/][#8B4513]██ [/][bold yellow]║[/][#6B2D8B]▓[/][bold yellow]   ╚╗[/]\n"
+    "[bold yellow]     ╔╝    [/][#6B2D8B]▓[/][bold yellow]╚═[/][#8B4513]██[/][bold yellow]║[/][white]    IX      IV    [/][bold yellow]║[/][#8B4513]██[/][bold yellow]═╝[/][#6B2D8B]▓[/][bold yellow]    ╚╗[/]\n"
+    "[bold yellow]    ╔╝ [/][#8B4513]████[/][bold yellow]═══[/][#8B4513]██[/][bold yellow]╚══════════════════╝[/][#8B4513]██[/][bold yellow]═══[/][#8B4513]████[/][bold yellow] ╚╗[/]\n"
+    "[bold yellow]   ╔╝  [/][#DAA520]▌▌▌[/][#8B4513]█████████████████████████████[/][#DAA520]▐▐▐[/][bold yellow]  ╚╗[/]\n"
+    "[bold yellow]  ╔╝   [/][#DAA520]▌▌▌[/][#8B4513]██[/][#DAA520]▌▌▌▌▌▌▌▌▌▌▌▌▌▌▌▌▌▌▌▌▌[/][#8B4513]██[/][#DAA520]▐▐▐[/][bold yellow]   ╚╗[/]\n"
+    "[bold yellow]  ╚══════════════╧════════════════╧══════════════╝[/]\n"
+    "[#8B4513]              ║║║  ║║║  ║║║  ║║║  ║║║[/]\n"
+    "[#DAA520]              ╚╝╚  ╚╝╚  ╚╝╚  ╚╝╚  ╚╝╚[/]\n"
+    "\n"
+    "[dim]          Offensive WiFi Launcher v1.0  ·  Created by Sharon Anil[/]\n"
+    '[dim yellow]        "See in the dark.  Strike without a trace."[/]\n'
+)
 
 # ── Compact sidebar / small area banner ──────────────────────────────────────
-OWL_ASCII = r"""
-[bold yellow]     ⚙  [/bold yellow][#6B2D8B]▓▓▓▓▓▓▓▓▓▓▓[/bold yellow][bold yellow]  ⚙[/bold yellow]
-[bold yellow]      [/bold yellow][#6B2D8B]▓[/bold yellow][bold yellow]╔═══════════╗[/bold yellow][#6B2D8B]▓[/bold yellow]
-[bold yellow]  ⚙──┤[/bold yellow][#6B2D8B]▓[/bold yellow][bold yellow]║[/bold yellow][#8B4513]█[/bold yellow][bold red]◈[/bold red][#DAA520]▄▄▄[/bold yellow][bold red]◈[/bold red][#8B4513]█[/bold yellow][bold yellow]║[/bold yellow][#6B2D8B]▓[/bold yellow][bold yellow]├──⚙[/bold yellow]
-[bold yellow]     [/bold yellow][#6B2D8B]▓[/bold yellow][bold yellow]║[/bold yellow][#8B4513]█[/bold yellow][bold red]◈[/bold red][#DAA520]║⊙║[/bold yellow][bold red]◈[/bold red][#8B4513]█[/bold yellow][bold yellow]║[/bold yellow][#6B2D8B]▓[/bold yellow]
-[bold yellow]  ⚙──┤[/bold yellow][#6B2D8B]▓[/bold yellow][bold yellow]╠[/bold yellow][#8B4513]███[/bold yellow][bold yellow]⚙─⚙[/bold yellow][#8B4513]███[/bold yellow][bold yellow]╣[/bold yellow][#6B2D8B]▓[/bold yellow][bold yellow]├──⚙[/bold yellow]
-[bold yellow]      [/bold yellow][#6B2D8B]▓[/bold yellow][bold yellow]║[/bold yellow][#8B4513]██[/bold yellow][bold yellow]╔═══════╗[/bold yellow][#8B4513]██[/bold yellow][bold yellow]║[/bold yellow][#6B2D8B]▓[/bold yellow]
-[bold yellow]      [/bold yellow][#6B2D8B]▓[/bold yellow][bold yellow]║[/bold yellow][#8B4513]██[/bold yellow][bold yellow]║[/bold yellow][white]X [/white][yellow]◉[/yellow][white] III[/white][bold yellow]║[/bold yellow][#8B4513]██[/bold yellow][bold yellow]║[/bold yellow][#6B2D8B]▓[/bold yellow]
-[bold yellow]      [/bold yellow][#6B2D8B]▓[/bold yellow][bold yellow]╚[/bold yellow][#8B4513]██[/bold yellow][bold yellow]╚═══════╝[/bold yellow][#8B4513]██[/bold yellow][bold yellow]╝[/bold yellow][#6B2D8B]▓[/bold yellow]
-[bold yellow]       [/bold yellow][#DAA520]▌[/bold yellow][#8B4513]███████████[/bold yellow][#DAA520]▐[/bold yellow]
-[bold yellow]       [/bold yellow][#8B4513]║╝ ║╝ ║╝ ║╝ ║╝[/bold yellow]
-"""
+OWL_ASCII = (
+    "[bold yellow]     ⚙  [/][#6B2D8B]▓▓▓▓▓▓▓▓▓▓▓[/][bold yellow]  ⚙[/]\n"
+    "[#6B2D8B]      ▓[/][bold yellow]╔═══════════╗[/][#6B2D8B]▓[/]\n"
+    "[bold yellow]  ⚙──┤[/][#6B2D8B]▓[/][bold yellow]║[/][#8B4513]█[/][bold red]◈[/][#DAA520]▄▄▄[/][bold red]◈[/][#8B4513]█[/][bold yellow]║[/][#6B2D8B]▓[/][bold yellow]├──⚙[/]\n"
+    "[#6B2D8B]     ▓[/][bold yellow]║[/][#8B4513]█[/][bold red]◈[/][#DAA520]║⊙║[/][bold red]◈[/][#8B4513]█[/][bold yellow]║[/][#6B2D8B]▓[/]\n"
+    "[bold yellow]  ⚙──┤[/][#6B2D8B]▓[/][bold yellow]╠[/][#8B4513]███[/][bold yellow]⚙─⚙[/][#8B4513]███[/][bold yellow]╣[/][#6B2D8B]▓[/][bold yellow]├──⚙[/]\n"
+    "[#6B2D8B]      ▓[/][bold yellow]║[/][#8B4513]██[/][bold yellow]╔═══════╗[/][#8B4513]██[/][bold yellow]║[/][#6B2D8B]▓[/]\n"
+    "[#6B2D8B]      ▓[/][bold yellow]║[/][#8B4513]██[/][bold yellow]║[/][white]X [/][yellow]◉[/][white] III[/][bold yellow]║[/][#8B4513]██[/][bold yellow]║[/][#6B2D8B]▓[/]\n"
+    "[#6B2D8B]      ▓[/][bold yellow]╚[/][#8B4513]██[/][bold yellow]╚═══════╝[/][#8B4513]██[/][bold yellow]╝[/][#6B2D8B]▓[/]\n"
+    "[#DAA520]       ▌[/][#8B4513]███████████[/][#DAA520]▐[/]\n"
+    "[#8B4513]       ║╝ ║╝ ║╝ ║╝ ║╝[/]\n"
+)
 
-OWL_BANNER_FULL = r"""
-[bold yellow]╔═══════════════════════════════════════════════════════════════════╗
-║  ⚙  ⚙   ◉  OWL — OFFENSIVE WiFi LAUNCHER v1.0  ◉   ⚙  ⚙  ║
-║                                                                 ║
-║     [/bold yellow][bold red]◈◈[/bold red][#8B4513]▄[/bold yellow][#DAA520]▄▄▄[/bold yellow][bold red]◈◈[/bold red][bold yellow]     See in the dark.                          ║
-║     [/bold yellow][bold red]◈◈[/bold red][#DAA520]║⊙║[/bold yellow][bold red]◈◈[/bold red][bold yellow]     Strike without a trace.                   ║
-║     [/bold yellow][#8B4513]███[/bold yellow][#DAA520]⚙─⚙[/bold yellow][#8B4513]███[/bold yellow][bold yellow]   ───────────────────────────── ║
-║     [/bold yellow][#8B4513]██[/bold yellow][bold yellow]╔[/bold yellow][white]X ◉ III[/white][bold yellow]╗[/bold yellow][#8B4513]██[/bold yellow][bold yellow]   RECON · DEAUTH · FLOOD         ║
-║     [/bold yellow][#DAA520]▌▌[/bold yellow][#8B4513]███████████[/bold yellow][#DAA520]▐▐[/bold yellow][bold yellow]   HARVEST · PORTAL · SETTINGS    ║
-║     [/bold yellow][#8B4513]║║ ║║ ║║ ║║[/bold yellow][bold yellow]        Created by Sharon Anil           ║
-╚═══════════════════════════════════════════════════════════════════╝[/bold yellow]
-"""
+OWL_BANNER_FULL = (
+    "[bold yellow]╔═══════════════════════════════════════════════════════════════════╗[/]\n"
+    "[bold yellow]║  ⚙  ⚙   ◉  OWL — OFFENSIVE WiFi LAUNCHER v1.0  ◉   ⚙  ⚙  ║[/]\n"
+    "[bold yellow]║[/]\n"
+    "[bold yellow]║     [/][bold red]◈◈[/][#8B4513]▄[/][#DAA520]▄▄▄[/][bold red]◈◈[/][bold yellow]     See in the dark.                          ║[/]\n"
+    "[bold yellow]║     [/][bold red]◈◈[/][#DAA520]║⊙║[/][bold red]◈◈[/][bold yellow]     Strike without a trace.                   ║[/]\n"
+    "[bold yellow]║     [/][#8B4513]███[/][#DAA520]⚙─⚙[/][#8B4513]███[/][bold yellow]   ─────────────────────────── ║[/]\n"
+    "[bold yellow]║     [/][#8B4513]██[/][bold yellow]╔[/][white]X ◉ III[/][bold yellow]╗[/][#8B4513]██[/][bold yellow]   RECON · DEAUTH · FLOOD    ║[/]\n"
+    "[bold yellow]║     [/][#DAA520]▌▌[/][#8B4513]███████████[/][#DAA520]▐▐[/][bold yellow]   HARVEST · PORTAL          ║[/]\n"
+    "[bold yellow]║     [/][#8B4513]║║ ║║ ║║ ║║[/][bold yellow]        Created by Sharon Anil   ║[/]\n"
+    "[bold yellow]╚═══════════════════════════════════════════════════════════════════╝[/]\n"
+)
 
-OWL_BANNER_COMPACT = r"""
-[bold yellow]⚙ [/bold yellow][bold red]◈[/bold red][bold yellow] OWL ─── [/bold yellow][#DAA520]OFFENSIVE WiFi LAUNCHER[/bold yellow][bold yellow] ─── [/bold yellow][bold red]◈[/bold red][bold yellow] ⚙
-  [dim]RECON · DEAUTH · FLOOD · HARVEST · PORTAL · v1.0[/dim]
-  [dim]"See in the dark. Strike without a trace."[/dim][/bold yellow]
-"""
+OWL_BANNER_COMPACT = (
+    "[bold yellow]⚙ [/][bold red]◈[/][bold yellow] OWL ─── [/][#DAA520]OFFENSIVE WiFi LAUNCHER[/][bold yellow] ─── [/][bold red]◈[/][bold yellow] ⚙[/]\n"
+    '[dim]  RECON · DEAUTH · FLOOD · HARVEST · PORTAL · v1.0[/]\n'
+    '[dim]  "See in the dark. Strike without a trace."[/]\n'
+)
 
-OWL_MINI = "[bold yellow]⚙ OWL[/bold yellow][dim yellow] v1.0[/dim yellow]"
+OWL_MINI = "[bold yellow]⚙ OWL[/][dim yellow] v1.0[/]"
 
 TERMINAL_BOOT_LINES = [
     ("cyan",   "[*] OWL v1.0 Steampunk Edition — initializing..."),
@@ -80,12 +82,11 @@ TERMINAL_BOOT_LINES = [
 ]
 
 MODULE_BANNERS = {
-    "recon":     "[bold cyan]⚙─ OWL-RECON ─── Reconnaissance & Discovery ────────────────⚙[/bold cyan]",
-    "deauth":    "[bold yellow]⚙─ OWL-DEAUTH ── Deauthentication Attack Engine ─────────────⚙[/bold yellow]",
-    "flood":     "[bold red]⚙─ OWL-FLOOD ─── Broadcast Kill / Packet Flood ──────────────⚙[/bold red]",
-    "harvest":   "[bold magenta]⚙─ OWL-HARVEST ─ Handshake Capture Pipeline ─────────────────⚙[/bold magenta]",
-    "portal":    "[bold green]⚙─ OWL-PORTAL ── Evil Twin & Captive Portal ─────────────────⚙[/bold green]",
-    "settings":  "[bold white]⚙─ OWL-CONFIG ── Settings & Health Checks ───────────────────⚙[/bold white]",
-    "dashboard": "[bold yellow]⚙─ OWL-DASH ──── Command Center ─────────────────────────────⚙[/bold yellow]",
+    "recon":     "[bold cyan]⚙─ OWL-RECON ─── Reconnaissance & Discovery ────────────────⚙[/]",
+    "deauth":    "[bold yellow]⚙─ OWL-DEAUTH ── Deauthentication Attack Engine ─────────────⚙[/]",
+    "flood":     "[bold red]⚙─ OWL-FLOOD ─── Broadcast Kill / Packet Flood ──────────────⚙[/]",
+    "harvest":   "[bold magenta]⚙─ OWL-HARVEST ─ Handshake Capture Pipeline ─────────────────⚙[/]",
+    "portal":    "[bold green]⚙─ OWL-PORTAL ── Evil Twin & Captive Portal ─────────────────⚙[/]",
+    "settings":  "[bold white]⚙─ OWL-CONFIG ── Settings & Health Checks ───────────────────⚙[/]",
+    "dashboard": "[bold yellow]⚙─ OWL-DASH ──── Command Center ─────────────────────────────⚙[/]",
 }
-
