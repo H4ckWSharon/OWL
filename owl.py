@@ -663,6 +663,17 @@ class ReconPage(Widget):
 
         terminal.info(f"[{ts()}] [*] OWL-RECON — airodump-ng on {iface} for {dur}s")
 
+        # ── Guard: must be in monitor mode before scanning ──────────────
+        mode = live.get_interface_mode(iface)
+        if mode != "monitor":
+            terminal.warn(
+                f"[{ts()}] [!] '{iface}' is in '{mode}' mode — NOT monitor mode!"
+            )
+            terminal.warn(
+                f"[{ts()}] [!] Click [ENABLE MON] first to put the interface into monitor mode."
+            )
+            return
+
         from datetime import datetime as _dt
         scan_prefix = f"/tmp/owl_recon_{_dt.now().strftime('%Y%m%d_%H%M%S')}"
         csv_path = await live.live_airodump_scan(iface, dur, terminal.callback,
@@ -1410,6 +1421,8 @@ PAGES: dict[str, tuple[str, str, type]] = {
 class OWLApp(App):
     CSS   = OWL_CSS
     TITLE = "OWL — Offensive WiFi Launcher v1.0 [LIVE]"
+    ENABLE_COMMAND_PALETTE = False   # Prevent Ctrl+P flood events
+    ALLOW_SELECT = False             # No text selection (prevents touch drag issues)
 
     BINDINGS = [
         Binding("1", "nav_dashboard", "Dashboard"),

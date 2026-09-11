@@ -142,6 +142,22 @@ async def live_airodump_scan(
         callback("warn", "[!] Live scan requires Linux + root.")
         return None
 
+    # ── Guard: interface must be in monitor mode ──────────────────
+    mode = get_interface_mode(iface)
+    if mode != "monitor":
+        callback("warn",
+            f"[!] Interface '{iface}' is in '{mode}' mode — not monitor mode! "
+            "Click ENABLE MON first, then retry the scan."
+        )
+        return None
+
+    # ── Clean up any leftover CSV files from previous run ─────────
+    for old in Path("/tmp").glob(f"{Path(output_prefix).name}*"):
+        try:
+            old.unlink()
+        except Exception:
+            pass
+
     csv_path = Path(f"{output_prefix}-01.csv")
     cmd = [
         "airodump-ng",
@@ -150,23 +166,49 @@ async def live_airodump_scan(
         "--write-interval", "1",
         iface,
     ]
-    callback("cyan", f"[*] Running airodump-ng for {duration}s...")
+    callback("cyan", f"[*] Running airodump-ng on {iface} for {duration}s...")
+    proc = None
     try:
         proc = await asyncio.create_subprocess_exec(
             *cmd,
             stdout=asyncio.subprocess.DEVNULL,
             stderr=asyncio.subprocess.DEVNULL,
         )
-        await asyncio.sleep(duration)
-        proc.terminate()
-        await proc.wait()
-        if csv_path.exists():
+        # Hard timeout: duration + 5s grace, then kill
+        try:
+            await asyncio.wait_for(
+                asyncio.shield(asyncio.sleep(duration)),
+                timeout=duration + 5,
+            )
+        except asyncio.TimeoutError:
+            callback("warn", "[!] Scan timed out — forcing kill.")
+        finally:
+            try:
+                proc.terminate()
+            except Exception:
+                pass
+            try:
+                await asyncio.wait_for(proc.wait(), timeout=3.0)
+            except asyncio.TimeoutError:
+                try:
+                    proc.kill()
+                except Exception:
+                    pass
+        if csv_path.exists() and csv_path.stat().st_size > 0:
             callback("green", f"[+] Scan complete. CSV: {csv_path}")
             return csv_path
         else:
-            callback("error", "[✗] No CSV output from airodump-ng.")
+            callback("error",
+                "[✗] No results in CSV — make sure interface is in monitor mode "
+                "and near access points."
+            )
             return None
     except Exception as e:
+        if proc:
+            try:
+                proc.kill()
+            except Exception:
+                pass
         callback("error", f"[✗] airodump-ng error: {e}")
         return None
 
@@ -179,27 +221,40 @@ def _strip_ansi(s: str) -> str:
 
 
 def parse_airodump_csv(csv_path: Path) -> tuple[list[dict], list[dict]]:
-    """Parse airodump-ng CSV into (aps, clients), deduplicated by BSSID/MAC."""
+    """
+    Parse airodump-ng CSV into (aps, clients), deduplicated by BSSID/MAC.
+    Handles both \r\n\r\n and \n\n section separators (varies by OS/version).
+    """
     aps_by_bssid: dict[str, dict] = {}
     clients_by_mac: dict[str, dict] = {}
     try:
         text = csv_path.read_text(errors="replace")
-        # airodump uses \r\n\r\n to separate AP and client sections
-        sections = text.split("\r\n\r\n")
-        if not sections:
-            return [], []
+
+        # Normalise all line endings to \n first
+        text_norm = text.replace("\r\n", "\n").replace("\r", "\n")
+
+        # airodump-ng separates AP and Client sections with a blank line
+        # (originally \r\n\r\n → after normalisation becomes \n\n)
+        sections = _re.split(r'\n{2,}', text_norm)
 
         ap_section = sections[0] if sections else ""
         cl_section = sections[1] if len(sections) > 1 else ""
 
         # ── Access Points ──────────────────────────────────────────
         ap_lines = ap_section.strip().splitlines()
-        for line in ap_lines[2:]:           # skip 2 header lines
-            parts = [_strip_ansi(p) for p in line.split(",")]
+        # First 2 lines are headers — skip them
+        for line in ap_lines[2:]:
+            line = line.strip()
+            if not line:
+                continue
+            parts = [_strip_ansi(p).strip() for p in line.split(",")]
             if len(parts) < 14:
                 continue
-            bssid = parts[0]
-            if not bssid or bssid.lower() == "bssid":
+            bssid = parts[0].strip()
+            # Skip header row or empty BSSID
+            if (not bssid
+                    or bssid.lower() == "bssid"
+                    or not _re.match(r'[0-9A-Fa-f]{2}:', bssid)):
                 continue
             try:
                 signal = int(parts[8]) if parts[8].lstrip("-").isdigit() else -999
@@ -209,10 +264,10 @@ def parse_airodump_csv(csv_path: Path) -> tuple[list[dict], list[dict]]:
             if bssid not in aps_by_bssid or signal > aps_by_bssid[bssid]["_sig"]:
                 aps_by_bssid[bssid] = {
                     "bssid":   bssid,
-                    "channel": parts[3],
-                    "signal":  f"{parts[8]} dBm",
-                    "enc":     parts[5],
-                    "ssid":    parts[13],
+                    "channel": parts[3].strip(),
+                    "signal":  f"{parts[8].strip()} dBm",
+                    "enc":     parts[5].strip(),
+                    "ssid":    parts[13].strip(),
                     "pmf":     "Unknown",
                     "clients": 0,
                     "wids":    False,
@@ -222,22 +277,27 @@ def parse_airodump_csv(csv_path: Path) -> tuple[list[dict], list[dict]]:
 
         # ── Clients ────────────────────────────────────────────────
         cl_lines = cl_section.strip().splitlines()
-        for line in cl_lines[2:]:           # skip 2 header lines
-            parts = [_strip_ansi(p) for p in line.split(",")]
+        for line in cl_lines[2:]:
+            line = line.strip()
+            if not line:
+                continue
+            parts = [_strip_ansi(p).strip() for p in line.split(",")]
             if len(parts) < 6:
                 continue
-            mac = parts[0]
-            if not mac or mac.lower() in ("station mac", "mac"):
+            mac = parts[0].strip()
+            if (not mac
+                    or mac.lower() in ("station mac", "mac")
+                    or not _re.match(r'[0-9A-Fa-f]{2}:', mac)):
                 continue
             if mac not in clients_by_mac:
                 clients_by_mac[mac] = {
                     "mac":       mac,
-                    "bssid":     parts[5],
-                    "signal":    f"{parts[3]} dBm",
+                    "bssid":     parts[5].strip(),
+                    "signal":    f"{parts[3].strip()} dBm",
                     "channel":   "—",
                     "vendor":    "",
-                    "frames":    parts[4],
-                    "last_seen": parts[2],
+                    "frames":    parts[4].strip(),
+                    "last_seen": parts[2].strip(),
                 }
             # Increment client count on parent AP
             ap_bssid = parts[5].strip()
