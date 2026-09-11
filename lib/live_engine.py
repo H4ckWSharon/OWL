@@ -134,75 +134,80 @@ async def enable_monitor_mode(
     iface: str, callback: Callable[[str, str], None]
 ) -> str | None:
     """Enable monitor mode using airmon-ng with multi-layer fallback.
-    Returns the active monitor interface name (or iface).
+    Always cleans interfering processes, unblocks RF, and brings the interface UP.
+    Returns the active monitor interface name.
     """
     if not IS_LINUX or not IS_ROOT:
         callback("warn", "[!] Live mode requires Linux running as root.")
         return None
 
-    # Check if already in monitor mode
-    cur_mode = get_interface_mode(iface)
-    if cur_mode == "monitor":
-        callback("green", f"[+] Interface '{iface}' is already in monitor mode.")
-        return iface
-
     callback("cyan", f"[*] Preparing '{iface}' for monitor mode...")
 
-    # Step 1: Kill interfering background processes (NetworkManager, wpa_supplicant)
+    # Step 1: Unblock RF switches
+    if shutil.which("rfkill"):
+        callback("dim", "    Unblocking RF switches (rfkill unblock all)...")
+        await _run_cmd(["rfkill", "unblock", "all"], callback, ignore_errors=True, timeout=3.0)
+        await _run_cmd(["rfkill", "unblock", "wifi"], callback, ignore_errors=True, timeout=3.0)
+
+    # Step 2: Kill interfering background processes (NetworkManager, wpa_supplicant)
     if shutil.which("airmon-ng"):
-        callback("dim", "    Killing interfering processes (airmon-ng check kill)...")
+        callback("dim", "    Killing conflicting processes (airmon-ng check kill)...")
         await _run_cmd(["airmon-ng", "check", "kill"], callback, ignore_errors=True, timeout=8.0)
 
-    # Record interfaces present beforehand
-    before_ifaces = set(get_wireless_interfaces())
+    # Step 3: Tell NetworkManager to ignore this device so it doesn't grab it back
+    if shutil.which("nmcli"):
+        callback("dim", f"    Setting '{iface}' to unmanaged in NetworkManager...")
+        await _run_cmd(["nmcli", "device", "set", iface, "managed", "no"], callback, ignore_errors=True, timeout=3.0)
 
-    # Step 2: Try airmon-ng start
-    if shutil.which("airmon-ng"):
-        callback("cyan", f"[*] Running: airmon-ng start {iface}...")
-        await _run_cmd(["airmon-ng", "start", iface], callback, ignore_errors=True, timeout=10.0)
+    # Step 4: Check if already in monitor mode
+    cur_mode = get_interface_mode(iface)
+    mon_iface = iface
 
-    # Check if the original interface is now in monitor mode
-    if get_interface_mode(iface) == "monitor":
-        callback("green", f"[+] Monitor mode active on '{iface}'.")
-        return iface
+    if cur_mode != "monitor":
+        before_ifaces = set(get_wireless_interfaces())
 
-    # Check if a new interface was spawned (e.g. wlan0mon, wlx...mon)
-    after_ifaces = set(get_wireless_interfaces())
-    candidates = list(after_ifaces - before_ifaces) + [f"{iface}mon", "wlan0mon", "wlan1mon"]
-    for cand in candidates:
-        if cand in after_ifaces and get_interface_mode(cand) == "monitor":
-            callback("green", f"[+] Monitor mode active on new interface '{cand}'.")
-            return cand
+        # Method 1: Try airmon-ng start
+        if shutil.which("airmon-ng"):
+            callback("cyan", f"[*] Running: airmon-ng start {iface}...")
+            await _run_cmd(["airmon-ng", "start", iface], callback, ignore_errors=True, timeout=10.0)
 
-    # Step 3: Fallback A — direct iw link change
-    if shutil.which("iw") and shutil.which("ip"):
-        callback("dim", f"    Fallback: ip link set {iface} down && iw dev {iface} set type monitor...")
-        await _run_cmd(["ip", "link", "set", iface, "down"], callback, ignore_errors=True, timeout=4.0)
-        await _run_cmd(["iw", "dev", iface, "set", "type", "monitor"], callback, ignore_errors=True, timeout=4.0)
-        await _run_cmd(["ip", "link", "set", iface, "up"], callback, ignore_errors=True, timeout=4.0)
-        if get_interface_mode(iface) == "monitor":
-            callback("green", f"[+] Monitor mode active on '{iface}'.")
-            return iface
+        # Check if a new interface appeared (e.g. wlan0mon or wlx...mon)
+        after_ifaces = set(get_wireless_interfaces())
+        candidates = list(after_ifaces - before_ifaces) + [f"{iface}mon", "wlan0mon", "wlan1mon"]
+        for cand in candidates:
+            if cand in after_ifaces and get_interface_mode(cand) == "monitor":
+                mon_iface = cand
+                break
 
-    # Step 4: Fallback B — iwconfig mode monitor (for Realtek drivers)
-    if shutil.which("iwconfig") and shutil.which("ip"):
-        callback("dim", f"    Fallback: iwconfig {iface} mode monitor...")
-        await _run_cmd(["ip", "link", "set", iface, "down"], callback, ignore_errors=True, timeout=4.0)
-        await _run_cmd(["iwconfig", iface, "mode", "monitor"], callback, ignore_errors=True, timeout=4.0)
-        await _run_cmd(["ip", "link", "set", iface, "up"], callback, ignore_errors=True, timeout=4.0)
-        if get_interface_mode(iface) == "monitor":
-            callback("green", f"[+] Monitor mode active on '{iface}'.")
-            return iface
+        # Fallback A: Direct iw link change
+        if get_interface_mode(mon_iface) != "monitor" and shutil.which("iw") and shutil.which("ip"):
+            callback("dim", f"    Trying direct switch: iw dev {mon_iface} set type monitor...")
+            await _run_cmd(["ip", "link", "set", mon_iface, "down"], callback, ignore_errors=True, timeout=4.0)
+            await _run_cmd(["iw", "dev", mon_iface, "set", "type", "monitor"], callback, ignore_errors=True, timeout=4.0)
+            await _run_cmd(["ip", "link", "set", mon_iface, "up"], callback, ignore_errors=True, timeout=4.0)
 
-    # Step 5: Final scan of all wireless interfaces
-    for cand in get_wireless_interfaces():
-        if get_interface_mode(cand) == "monitor":
-            callback("green", f"[+] Monitor interface found: '{cand}'.")
-            return cand
+        # Fallback B: iwconfig mode monitor (Realtek RTL8812au, RTL8821cu)
+        if get_interface_mode(mon_iface) != "monitor" and shutil.which("iwconfig") and shutil.which("ip"):
+            callback("dim", f"    Trying iwconfig: iwconfig {mon_iface} mode monitor...")
+            await _run_cmd(["ip", "link", "set", mon_iface, "down"], callback, ignore_errors=True, timeout=4.0)
+            await _run_cmd(["iwconfig", mon_iface, "mode", "monitor"], callback, ignore_errors=True, timeout=4.0)
+            await _run_cmd(["ip", "link", "set", mon_iface, "up"], callback, ignore_errors=True, timeout=4.0)
 
-    callback("warn", f"[!] Could not confirm monitor mode for '{iface}'.")
-    callback("dim", "    Proceeding anyway — some Realtek drivers operate in monitor mode without reporting it.")
-    return iface
+        # Fallback C: Scan all interfaces for any active monitor interface
+        if get_interface_mode(mon_iface) != "monitor":
+            for cand in get_wireless_interfaces():
+                if get_interface_mode(cand) == "monitor":
+                    mon_iface = cand
+                    break
+
+    # Step 5: CRITICAL — ALWAYS bring the monitor interface UP!
+    if shutil.which("ip"):
+        callback("dim", f"    Bringing interface UP (ip link set {mon_iface} up)...")
+        await _run_cmd(["ip", "link", "set", mon_iface, "up"], callback, ignore_errors=True, timeout=4.0)
+
+    final_mode = get_interface_mode(mon_iface)
+    callback("green", f"[+] Monitor mode ready on '{mon_iface}' (mode: {final_mode}). Interface is UP!")
+    return mon_iface
 
 
 async def disable_monitor_mode(
@@ -262,52 +267,62 @@ def parse_airodump_csv(csv_path: Path) -> tuple[list[dict], list[dict]]:
                 section = "aps"
                 continue
 
-            parts = [p.strip() for p in line.split(",")]
+            parts = [p.strip().strip('"').strip("'") for p in line.split(",")]
 
             if section == "aps":
-                if len(parts) < 14:
+                if len(parts) < 9:
                     continue
                 bssid = parts[0].strip()
                 if not _re.match(r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$', bssid):
                     continue
 
                 sig_str = parts[8].strip()
-                signal = int(sig_str) if sig_str.lstrip("-").isdigit() else -999
+                try:
+                    raw_sig = int(sig_str) if sig_str.lstrip("-").isdigit() else -999
+                except Exception:
+                    raw_sig = -999
 
-                ssid = parts[13].strip() if len(parts) > 13 else ""
-                channel = parts[3].strip() if len(parts) > 3 else ""
-                enc = parts[5].strip() if len(parts) > 5 else ""
+                # In airodump, -1 dBm means unmeasured/unknown signal
+                signal_score = -999 if raw_sig in (-1, 0) else raw_sig
 
-                if bssid not in aps_by_bssid or signal > aps_by_bssid[bssid]["_sig"]:
+                channel = parts[3].strip() if len(parts) > 3 else "—"
+                enc = parts[5].strip() if len(parts) > 5 else "—"
+                raw_ssid = ",".join(parts[13:]).strip() if len(parts) > 13 else ""
+                ssid = raw_ssid.strip(',').strip().strip('"').strip("'")
+
+                if bssid not in aps_by_bssid or signal_score > aps_by_bssid[bssid]["_sig"]:
                     aps_by_bssid[bssid] = {
                         "bssid":   bssid,
                         "channel": channel,
-                        "signal":  f"{sig_str} dBm" if sig_str else "—",
+                        "signal":  f"{sig_str} dBm" if sig_str and sig_str != "-1" else "—",
                         "enc":     enc,
                         "ssid":    ssid or "<hidden>",
                         "pmf":     "Unknown",
                         "clients": 0,
                         "wids":    False,
                         "vendor":  "",
-                        "_sig":    signal,
+                        "_sig":    signal_score,
                     }
 
             elif section == "clients":
-                if len(parts) < 6:
+                if len(parts) < 4:
                     continue
                 mac = parts[0].strip()
                 if not _re.match(r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$', mac):
                     continue
                 parent_bssid = parts[5].strip() if len(parts) > 5 else ""
+                sig_val = parts[3].strip() if len(parts) > 3 else ""
+                frames_val = parts[4].strip() if len(parts) > 4 else "0"
+                last_val = parts[2].strip() if len(parts) > 2 else "—"
                 if mac not in clients_by_mac:
                     clients_by_mac[mac] = {
                         "mac":       mac,
                         "bssid":     parent_bssid if parent_bssid and parent_bssid != "(not associated)" else "—",
-                        "signal":    f"{parts[3].strip()} dBm" if parts[3].strip() else "—",
+                        "signal":    f"{sig_val} dBm" if sig_val and sig_val != "-1" else "—",
                         "channel":   "—",
                         "vendor":    "",
-                        "frames":    parts[4].strip() if len(parts) > 4 else "0",
-                        "last_seen": parts[2].strip() if len(parts) > 2 else "—",
+                        "frames":    frames_val,
+                        "last_seen": last_val,
                     }
                 # Track client count on AP
                 if parent_bssid and parent_bssid in aps_by_bssid:
@@ -331,7 +346,7 @@ async def live_airodump_scan(
     bssid: str = "",
     stop_event: asyncio.Event | None = None,
 ) -> tuple[list[dict], list[dict], Path | None]:
-    """Run real-time airodump-ng scan.
+    """Run real-time airodump-ng scan with dual-band and interface UP assurance.
 
     Updates on_progress every second so the UI is responsive.
     Returns (aps, clients, csv_path).
@@ -340,20 +355,27 @@ async def live_airodump_scan(
         callback("warn", "[!] Live scan requires Linux running as root.")
         return [], [], None
 
+    # Step 1: Guarantee interface is unblocked and UP before starting
+    if shutil.which("rfkill"):
+        await _run_cmd(["rfkill", "unblock", "wifi"], callback, ignore_errors=True, timeout=2.0)
+    if shutil.which("ip"):
+        await _run_cmd(["ip", "link", "set", iface, "up"], callback, ignore_errors=True, timeout=3.0)
+
     mode = get_interface_mode(iface)
     if mode == "managed":
         callback("warn",
-            f"[!] '{iface}' is in managed mode. "
-            "If scan returns 0 APs, click ENABLE MON first."
+            f"[!] '{iface}' is reported in managed mode. "
+            "Click ENABLE MON to stop NetworkManager and set monitor mode."
         )
 
-    # Clean leftover files
+    # Step 2: Clean leftover files
     for old in Path("/tmp").glob(f"{Path(output_prefix).name}*"):
         try:
             old.unlink()
         except Exception:
             pass
 
+    # Step 3: Build command — use dual-band (2.4GHz + 5GHz) when channel=0
     csv_path = Path(f"{output_prefix}-01.csv")
     cmd = [
         "airodump-ng",
@@ -363,11 +385,15 @@ async def live_airodump_scan(
     ]
     if channel and str(channel).strip() not in ("0", ""):
         cmd.extend(["--channel", str(channel).strip()])
+    else:
+        # Dual-band scan (a = 5GHz, b/g = 2.4GHz)
+        cmd.extend(["--band", "abg"])
+
     if bssid and bssid.strip():
         cmd.extend(["--bssid", bssid.strip()])
     cmd.append(iface)
 
-    callback("cyan", f"[*] Running airodump-ng on {iface} (duration: {duration}s)...")
+    callback("cyan", f"[*] Running airodump-ng on {iface} (duration: {duration}s, dual-band 2.4+5GHz)...")
     proc = None
     aps: list[dict] = []
     clients: list[dict] = []
@@ -393,6 +419,19 @@ async def live_airodump_scan(
                     err_text = raw_err.decode(errors="replace").strip()
                 except Exception:
                     pass
+
+                # If --band abg is not supported by driver, retry with 2.4GHz only
+                if "--band" in cmd:
+                    callback("warn", f"[!] Dual-band scan skipped ({err_text or proc.returncode}). Retrying with 2.4GHz...")
+                    cmd = [c for c in cmd if c not in ("--band", "abg")]
+                    proc = await asyncio.create_subprocess_exec(
+                        *cmd,
+                        stdin=asyncio.subprocess.DEVNULL,
+                        stdout=asyncio.subprocess.DEVNULL,
+                        stderr=asyncio.subprocess.PIPE,
+                    )
+                    continue
+
                 callback("error", f"[✗] airodump-ng exited ({proc.returncode}): {err_text or 'Check if interface is up.'}")
                 break
 
@@ -406,6 +445,10 @@ async def live_airodump_scan(
                         on_progress(aps, clients, sec, duration - sec)
                     except Exception:
                         pass
+
+            # Intermediate progress log in terminal every 5 seconds
+            if sec % 5 == 0 and not (stop_event and stop_event.is_set()):
+                callback("dim", f"    [{sec}s/{duration}s] Sniffing... {len(aps)} APs, {len(clients)} clients captured")
 
     except Exception as e:
         callback("error", f"[✗] Scan exception: {e}")
@@ -426,15 +469,18 @@ async def live_airodump_scan(
     # Final parse
     if csv_path.exists() and csv_path.stat().st_size > 0:
         aps, clients = parse_airodump_csv(csv_path)
-        callback("green", f"[+] Scan complete: {len(aps)} APs, {len(clients)} clients.")
-        return aps, clients, csv_path
-    else:
-        if not (stop_event and stop_event.is_set()):
-            callback("warn",
-                f"[!] 0 APs captured. Verify that '{iface}' is in monitor mode "
-                "(click ENABLE MON) and Wi-Fi networks are in range."
-            )
-        return aps, clients, None
+        if aps:
+            callback("green", f"[+] Scan complete: {len(aps)} APs, {len(clients)} clients.")
+            return aps, clients, csv_path
+
+    if not (stop_event and stop_event.is_set()):
+        callback("warn",
+            f"[!] 0 APs captured on '{iface}'.\n"
+            f"    1. Click [ENABLE MON] to kill interfering NetworkManager processes.\n"
+            f"    2. Ensure the Wi-Fi adapter's external antenna is screwed in securely.\n"
+            f"    3. Confirm Wi-Fi networks are actively broadcasting within range."
+        )
+    return aps, clients, None
 
 
 
