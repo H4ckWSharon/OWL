@@ -1512,19 +1512,6 @@ class OWLApp(App):
         self.set_interval(1, self._update_clock)
         self._update_nav()
         self._update_top_bar()
-        # Disable xterm any-event mouse motion tracking after Textual
-        # sets up its driver. This prevents touchscreen devices from
-        # flooding the event queue with \x1b[<35;X;YM sequences which
-        # corrupt widget content.  Button-click tracking (1000h) stays.
-        self.call_after_refresh(self._disable_mouse_motion)
-
-    def _disable_mouse_motion(self) -> None:
-        """Write xterm escape to stop motion-tracking; keep click events."""
-        try:
-            import os
-            os.write(1, b"\x1b[?1003l")   # disable any-event motion tracking
-        except Exception:
-            pass
 
     def _on_consent(self, result: bool | None) -> None:
         if result:
