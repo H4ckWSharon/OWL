@@ -432,7 +432,11 @@ class TerminalLog(RichLog):
         self.write("[dim]" + "─" * 72 + "[/dim]")
 
     def _log(self, color: str, msg: str) -> None:
-        self.write(f"[{color}]{msg}[/{color}]")
+        from rich.markup import escape
+        try:
+            self.write(f"[{color}]{escape(msg)}[/{color}]")
+        except Exception:
+            self.write(Text(msg, style=color))
 
     def info(self, msg: str)    -> None: self._log("cyan",    msg)
     def success(self, msg: str) -> None: self._log("green",   msg)
@@ -581,7 +585,9 @@ class DashboardPage(Widget):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 class ReconPage(Widget):
-    _scan_proc = None
+    _is_scanning: bool = False
+    _is_enabling_mon: bool = False
+    _stop_event: asyncio.Event | None = None
 
     def compose(self) -> ComposeResult:
         yield Static(MODULE_BANNERS["recon"], markup=True)
@@ -633,75 +639,142 @@ class ReconPage(Widget):
 
     @on(Button.Pressed, "#recon-mon")
     def enable_monitor(self) -> None:
+        if self._is_enabling_mon:
+            return
         self.do_enable_monitor()
 
-    @work(exclusive=True)
+    @work(exclusive=True, group="recon_mon")
     async def do_enable_monitor(self) -> None:
+        self._is_enabling_mon = True
+        btn = self.query_one("#recon-mon", Button)
+        btn.label = "⏳ ENABLING..."
+        btn.disabled = True
         terminal = self.app.query_one("#terminal-log", TerminalLog)
-        iface    = self.query_one("#recon-iface", Input).value.strip() or "wlan0"
-        mon_iface = await live.enable_monitor_mode(iface, terminal.callback)
-        if mon_iface:
-            self.query_one("#recon-iface", Input).value = mon_iface
+        iface = self.query_one("#recon-iface", Input).value.strip() or "wlan0"
+        try:
+            mon_iface = await live.enable_monitor_mode(iface, terminal.callback)
+            if mon_iface:
+                self.query_one("#recon-iface", Input).value = mon_iface
+        except Exception as e:
+            terminal.error(f"[{ts()}] [✗] Monitor mode error: {e}")
+        finally:
+            btn.label = "⊞ ENABLE MON"
+            btn.disabled = False
+            self._is_enabling_mon = False
 
     @on(Button.Pressed, "#recon-start")
     def start_scan(self) -> None:
+        if self._is_scanning:
+            return
         self.run_scan()
 
-    @work(exclusive=True)
+    @work(exclusive=True, group="recon_scan")
     async def run_scan(self) -> None:
+        self._is_scanning = True
+        self._stop_event = asyncio.Event()
+
+        start_btn = self.query_one("#recon-start", Button)
+        start_btn.disabled = True
+        start_btn.label = "⏳ SCANNING..."
+
         terminal = self.app.query_one("#terminal-log", TerminalLog)
         iface    = self.query_one("#recon-iface", Input).value.strip() or "wlan0mon"
         bssid    = self.query_one("#recon-bssid", Input).value.strip()
+        ch_raw   = self.query_one("#recon-ch",    Input).value.strip()
 
         try:
             dur = int(self.query_one("#recon-dur", Input).value or 15)
         except ValueError:
             dur = 15
 
-        self.query_one("#recon-aps",     DataTable).clear()
-        self.query_one("#recon-clients", DataTable).clear()
+        ap_tbl = self.query_one("#recon-aps", DataTable)
+        cl_tbl = self.query_one("#recon-clients", DataTable)
+        ap_tbl.clear()
+        cl_tbl.clear()
 
-        terminal.info(f"[{ts()}] [*] OWL-RECON — airodump-ng on {iface} for {dur}s")
+        known_aps: set[str] = set()
+        known_cls: set[str] = set()
 
-        # ── Guard: must be in monitor mode before scanning ──────────────
+        terminal.info(f"[{ts()}] [*] OWL-RECON — starting airodump-ng on {iface} for {dur}s")
+
         mode = live.get_interface_mode(iface)
-        if mode != "monitor":
+        if mode == "managed":
             terminal.warn(
-                f"[{ts()}] [!] '{iface}' is in '{mode}' mode — NOT monitor mode!"
+                f"[{ts()}] [!] '{iface}' is reported in managed mode. If 0 APs appear, click [ENABLE MON]."
             )
-            terminal.warn(
-                f"[{ts()}] [!] Click [ENABLE MON] first to put the interface into monitor mode."
-            )
-            return
 
         from datetime import datetime as _dt
         scan_prefix = f"/tmp/owl_recon_{_dt.now().strftime('%Y%m%d_%H%M%S')}"
-        csv_path = await live.live_airodump_scan(iface, dur, terminal.callback,
-                                                 output_prefix=scan_prefix)
 
-        if csv_path:
-            aps, clients = live.parse_airodump_csv(csv_path)
-            ap_tbl = self.query_one("#recon-aps", DataTable)
+        def _on_progress(aps: list[dict], clients: list[dict], elapsed: int, remaining: int) -> None:
+            start_btn.label = f"⏳ SCAN ({remaining}s)"
+            # Populate APs live
             for ap in aps:
-                ap_tbl.add_row(
-                    ap["bssid"], ap["ssid"], ap["channel"],
-                    ap["signal"], ap["enc"], ap["pmf"],
-                    str(ap["clients"]), "?" ,
-                )
-            cl_tbl = self.query_one("#recon-clients", DataTable)
+                b = ap["bssid"]
+                if b not in known_aps:
+                    known_aps.add(b)
+                    ap_tbl.add_row(
+                        b, ap.get("ssid", "<hidden>"), str(ap.get("channel", "—")),
+                        ap.get("signal", "—"), ap.get("enc", "—"), ap.get("pmf", "Unknown"),
+                        str(ap.get("clients", 0)), "?",
+                        key=b
+                    )
+            # Populate clients live
             for c in clients:
-                cl_tbl.add_row(
-                    c["mac"], c["bssid"], c["signal"],
-                    c["frames"], c["last_seen"],
-                )
-            terminal.success(f"[{ts()}] [+] Scan complete: {len(aps)} APs, {len(clients)} clients")
-        else:
-            terminal.error(f"[{ts()}] [✗] Scan failed — check interface and monitor mode")
+                m = c["mac"]
+                if m not in known_cls:
+                    known_cls.add(m)
+                    cl_tbl.add_row(
+                        m, c.get("bssid", "—"), c.get("signal", "—"),
+                        str(c.get("frames", "0")), c.get("last_seen", "—"),
+                        key=m
+                    )
+            # Live PMF / WIDS stats
+            pmf_count = sum(1 for ap in aps if "pmf" in ap.get("pmf", "").lower() or "wpa3" in ap.get("enc", "").lower())
+            try:
+                pmf_w = self.query_one("#pmf-status", Static)
+                if pmf_count > 0:
+                    pmf_w.update(f"[bold green]{pmf_count} AP(s) with PMF/WPA3[/bold green]")
+                else:
+                    pmf_w.update(f"[dim]{len(aps)} AP(s) scanned (no PMF required)[/dim]")
+                wids_w = self.query_one("#wids-status", Static)
+                wids_w.update(f"[cyan]{len(aps)} AP(s), {len(clients)} client(s)[/cyan]")
+            except Exception:
+                pass
+
+        try:
+            aps, clients, csv_path = await live.live_airodump_scan(
+                iface, dur, terminal.callback,
+                on_progress=_on_progress,
+                output_prefix=scan_prefix,
+                channel=ch_raw,
+                bssid=bssid,
+                stop_event=self._stop_event,
+            )
+
+            # Final population pass
+            _on_progress(aps, clients, dur, 0)
+
+            if aps:
+                terminal.success(f"[{ts()}] [+] Scan complete: {len(aps)} APs, {len(clients)} clients captured.")
+            elif not (self._stop_event and self._stop_event.is_set()):
+                terminal.warn(f"[{ts()}] [!] 0 APs found. Make sure '{iface}' is in monitor mode and near Wi-Fi networks.")
+
+        except Exception as e:
+            terminal.error(f"[{ts()}] [✗] Recon error: {e}")
+        finally:
+            self._is_scanning = False
+            start_btn.label = "◎ START SCAN"
+            start_btn.disabled = False
 
     @on(Button.Pressed, "#recon-stop")
     def stop_scan(self) -> None:
         terminal = self.app.query_one("#terminal-log", TerminalLog)
-        terminal.warn(f"[{ts()}] [!] RECON stopped by user.")
+        if self._is_scanning and self._stop_event:
+            self._stop_event.set()
+            terminal.warn(f"[{ts()}] [!] Stopping scan...")
+        else:
+            terminal.warn(f"[{ts()}] [!] No scan currently running.")
 
     @on(Button.Pressed, "#recon-export")
     def export_csv(self) -> None:
@@ -1512,6 +1585,21 @@ class OWLApp(App):
         self.set_interval(1, self._update_clock)
         self._update_nav()
         self._update_top_bar()
+        self.call_after_refresh(self._setup_mouse_mode)
+
+    def _setup_mouse_mode(self) -> None:
+        """Configure terminal mouse tracking.
+        Disables all-motion tracking (1003l) so touchscreens and trackpads
+        do not flood stdin with motion sequences (^[[<35;X;YM) or freeze Textual.
+        Re-enables button click/release reporting (1000h) and SGR mode (1006h)
+        so tapping buttons, tables, and nav items works cleanly.
+        """
+        try:
+            import sys
+            sys.stdout.write("\x1b[?1003l\x1b[?1000h\x1b[?1006h")
+            sys.stdout.flush()
+        except Exception:
+            pass
 
     def _on_consent(self, result: bool | None) -> None:
         if result:
@@ -1589,6 +1677,7 @@ class OWLApp(App):
                 back_btn.add_class("hidden")
             else:
                 back_btn.remove_class("hidden")
+                back_btn.label = "⌂ DASHBOARD"
         except Exception:
             pass
 

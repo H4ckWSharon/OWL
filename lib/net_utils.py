@@ -29,12 +29,28 @@ def list_all_interfaces() -> list[str]:
 
 
 def list_wifi_interfaces() -> list[str]:
-    """Wireless interfaces only (check /sys/class/net/<iface>/wireless)."""
+    """Wireless interfaces (checks /wireless, /phy80211, interface type, or iw)."""
     ifaces = []
     for iface in list_all_interfaces():
-        if Path(f"/sys/class/net/{iface}/wireless").exists():
+        if iface == "lo":
+            continue
+        # Check 1: sysfs wireless or phy80211 node
+        if (Path(f"/sys/class/net/{iface}/wireless").exists() or
+            Path(f"/sys/class/net/{iface}/phy80211").exists()):
             ifaces.append(iface)
-    return ifaces
+            continue
+        # Check 2: type in (801, 802, 803) (ARPHRD_IEEE80211*)
+        try:
+            t = Path(f"/sys/class/net/{iface}/type").read_text().strip()
+            if t in ("801", "802", "803"):
+                ifaces.append(iface)
+                continue
+        except Exception:
+            pass
+        # Check 3: Standard wireless interface naming prefixes
+        if iface.startswith(("wlan", "wlp", "wlo", "wlx", "mon", "wifi")):
+            ifaces.append(iface)
+    return sorted(list(set(ifaces)))
 
 
 def get_interface_info(iface: str) -> dict:
@@ -72,17 +88,26 @@ def get_interface_info(iface: str) -> dict:
     except Exception:
         pass
 
+    # Check sysfs type for monitor mode (802 = PRISM, 803 = RADIOTAP)
+    try:
+        t = Path(f"/sys/class/net/{iface}/type").read_text().strip()
+        if t in ("802", "803"):
+            info["mode"] = "monitor"
+            info["monitor"] = True
+    except Exception:
+        pass
+
     # Mode via iw
-    if shutil.which("iw"):
+    if info["mode"] == "unknown" and shutil.which("iw"):
         try:
             out = subprocess.check_output(
                 ["iw", "dev", iface, "info"],
-                stderr=subprocess.DEVNULL, text=True
+                stderr=subprocess.DEVNULL, text=True, timeout=2.0
             )
             for line in out.splitlines():
                 s = line.strip()
                 if s.startswith("type "):
-                    info["mode"] = s.split()[-1]
+                    info["mode"] = s.split()[-1].lower()
                     info["monitor"] = info["mode"] == "monitor"
                 elif s.startswith("channel "):
                     m = re.search(r"channel (\d+)", s)
@@ -95,7 +120,21 @@ def get_interface_info(iface: str) -> dict:
         except Exception:
             pass
 
-    # Injection test (quick — just check iw supports it)
+    # Fallback mode via iwconfig (especially for Realtek RTL8812au, etc.)
+    if info["mode"] == "unknown" and shutil.which("iwconfig"):
+        try:
+            out = subprocess.check_output(
+                ["iwconfig", iface],
+                stderr=subprocess.DEVNULL, text=True, timeout=2.0
+            )
+            m = re.search(r"Mode:(\w+)", out, re.IGNORECASE)
+            if m:
+                info["mode"] = m.group(1).lower()
+                info["monitor"] = info["mode"] == "monitor"
+        except Exception:
+            pass
+
+    # Injection test (quick — check aireplay-ng exists when monitor is active)
     info["injection"] = info["monitor"] and shutil.which("aireplay-ng") is not None
 
     return info
